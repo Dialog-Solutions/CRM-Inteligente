@@ -118,7 +118,7 @@ with col1:
                     5.  **Formato de Saída:** Sua resposta deve ser APENAS o código JSON do dossiê atualizado. Não inclua texto explicativo antes ou depois.
                     """
 
-                    model = genai.GenerativeModel('gemini-pro')
+                    model = genai.GenerativeModel('gemini-1.0-pro')
                     response = model.generate_content(prompt)
                     
                     resposta_limpa = response.text.strip().replace("```json", "").replace("```", "")
@@ -160,3 +160,4 @@ with col2:
         for id_problema, detalhes in problemas_resolvidos.items():
             with st.expander(f"**{id_problema.replace('_', ' ').capitalize()}:** {detalhes.get('descricao', 'Sem descrição')}"):
                 st.write(detalhes)
+
