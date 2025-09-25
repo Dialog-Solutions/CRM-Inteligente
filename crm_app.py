@@ -13,17 +13,19 @@ st.write("A memória viva do seu suporte ao cliente via WhatsApp.")
 # --- INICIALIZAÇÃO SEGURA E CORRETA DO FIREBASE ---
 @st.cache_resource
 def init_firebase():
-    """Inicializa a conexão com o Firebase usando a secção [firebase] dos segredos."""
+    """Inicializa a conexão com o Firebase, corrigindo a formatação da chave privada."""
     try:
-        # Pega o dicionário inteiro da secção [firebase] nos segredos
         firebase_creds_dict = st.secrets["firebase"]
-        
-        # Pega a URL do banco de dados do segredo principal
         db_url = st.secrets["databaseURL"]
+        
+        # ***** A CORREÇÃO ESTÁ AQUI *****
+        # O Streamlit lê as quebras de linha como texto '\\n'.
+        # Esta linha substitui o texto por uma quebra de linha real '\n'.
+        firebase_creds_dict["private_key"] = firebase_creds_dict["private_key"].replace('\\n', '\n')
+        # *********************************
         
         cred = credentials.Certificate(firebase_creds_dict)
 
-        # Evita reinicializar o app se ele já estiver rodando
         try:
             firebase_admin.get_app()
         except ValueError:
@@ -101,11 +103,29 @@ with col1:
         else:
             with st.spinner("A IA está a analisar a conversa..."):
                 try:
-                    prompt = f"""
-                    Você é um sistema de CRM inteligente. Sua tarefa é atualizar o dossiê de um cliente... (o resto do prompt é igual)
+                    # Incluindo o dossiê atual no prompt
+                    prompt_completo = f"""
+                    Você é um sistema de CRM inteligente. Sua tarefa é atualizar o dossiê de um cliente.
+
+                    **Dossiê Atual do Cliente (em formato JSON):**
+                    {json.dumps(cliente_atual, ensure_ascii=False, indent=2)}
+
+                    **Nova Transcrição da Conversa do WhatsApp:**
+                    ---
+                    {nova_conversa}
+                    ---
+
+                    **Sua Tarefa:**
+                    Analise a "Nova Transcrição" levando em conta o "Dossiê Atual".
+                    Retorne um NOVO dossiê completo em formato JSON, aplicando as seguintes regras:
+                    1.  **Identifique Novos Problemas:** Se a conversa menciona um problema que não está em "problemas_abertos", crie um novo problema com um ID único (ex: "problema_X", onde X é o próximo número disponível), uma descrição clara e o status "aberto".
+                    2.  **Identifique Resoluções:** Se a conversa indica que um problema que estava em "problemas_abertos" foi resolvido, mova-o para "problemas_resolvidos".
+                    3.  **Atualize o Resumo:** Reescreva o campo "resumo_inteligente" para refletir o estado atual do cliente e os últimos acontecimentos.
+                    4.  **Mantenha o Histórico:** Nunca apague problemas antigos de "problemas_resolvidos". Apenas adicione novos.
+                    5.  **Formato de Saída:** Sua resposta deve ser APENAS o código JSON do dossiê atualizado. Não inclua texto explicativo antes ou depois.
                     """
                     model = genai.GenerativeModel('gemini-1.0-pro')
-                    response = model.generate_content(prompt)
+                    response = model.generate_content(prompt_completo)
                     resposta_limpa = response.text.strip().replace("```json", "").replace("```", "")
                     dossie_atualizado = json.loads(resposta_limpa)
                     dados_clientes[numero_cliente_selecionado] = dossie_atualizado
