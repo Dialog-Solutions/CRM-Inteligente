@@ -68,7 +68,11 @@ cliente_atual = dados_clientes[numero_cliente_selecionado]
 col1, col2 = st.columns(2)
 with col1:
   st.header(f"Atualizar Dossiê de {cliente_atual['nome_cliente']}")
-  api_key = st.text_input("Insira sua Chave de API do Google AI Studio", type="password")
+  try:
+      genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+  except Exception as e:
+      st.error("Chave de API não configurada. Peça ao administrador para configurar os 'Secrets' do Streamlit.")
+      st.stop()
 
   nova_conversa = st.text_area(
     "Cole aqui a nova conversa do WhatsApp para análise",
@@ -104,7 +108,7 @@ with col1:
           5.  **Formato de Saída:** Sua resposta deve ser APENAS o código JSON do dossiê atualizado. Não inclua texto explicativo antes ou depois.
           """
 
-          model = genai.GenerativeModel("gemini-1.5-flash")
+          model = genai.GenerativeModel('gemini-pro')
           response = model.generate_content(prompt)
 
           resposta_limpa = response.text.strip().replace("```json", "").replace("```", "")
@@ -141,4 +145,5 @@ with col2:
     else:
         for id_problema, detalhes in problemas_resolvidos.items():
             with st.expander(f"**{id_problema.replace('_', ' ').capitalize()}:** {detalhes.get('descricao', 'Sem descrição')}"):
+
                 st.write(detalhes)
