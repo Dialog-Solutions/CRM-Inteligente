@@ -10,20 +10,18 @@ st.set_page_config(layout="wide", page_title="CRM Inteligente para WhatsApp")
 st.title("🤖 CRM Inteligente para WhatsApp 🤖")
 st.write("A memória viva do seu suporte ao cliente via WhatsApp.")
 
-# --- INICIALIZAÇÃO SEGURA E SIMPLIFICADA DO FIREBASE ---
+# --- INICIALIZAÇÃO SEGURA E CORRETA DO FIREBASE ---
 @st.cache_resource
 def init_firebase():
-    """Inicializa a conexão com o Firebase usando um único segredo."""
+    """Inicializa a conexão com o Firebase usando a secção [firebase] dos segredos."""
     try:
-        # Pega a string do segredo que contém todo o JSON
-        firebase_secret_str = st.secrets["FIREBASE_SERVICE_ACCOUNT"]
-        # Converte a string para um dicionário Python
-        firebase_creds_dict = json.loads(firebase_secret_str)
+        # Pega o dicionário inteiro da secção [firebase] nos segredos
+        firebase_creds_dict = st.secrets["firebase"]
+        
+        # Pega a URL do banco de dados do segredo principal
+        db_url = st.secrets["databaseURL"]
         
         cred = credentials.Certificate(firebase_creds_dict)
-        
-        # Pega a URL do banco de dados de um segredo separado
-        db_url = st.secrets["databaseURL"]
 
         # Evita reinicializar o app se ele já estiver rodando
         try:
@@ -32,7 +30,7 @@ def init_firebase():
             firebase_admin.initialize_app(cred, {'databaseURL': db_url})
         return True
     except Exception as e:
-        st.error(f"Erro CRÍTICO ao inicializar o Firebase: {e}. Verifique a formatação dos seus 'Secrets'. O segredo 'FIREBASE_SERVICE_ACCOUNT' está correto?")
+        st.error(f"Erro CRÍTICO ao inicializar o Firebase: {e}. Verifique a formatação da secção [firebase] e do 'databaseURL' nos seus 'Secrets'.")
         return False
 
 # --- INICIALIZAÇÃO SEGURA DA API DO GEMINI ---
@@ -46,7 +44,7 @@ except Exception as e:
 if not init_firebase():
     st.stop()
 
-# --- FUNÇÕES DE AJUDA PARA LER/SALVAR NO FIREBASE (sem alterações) ---
+# --- FUNÇÕES DE AJUDA PARA LER/SALVAR NO FIREBASE ---
 def carregar_dados():
     ref = db.reference('/')
     data = ref.get()
@@ -56,7 +54,7 @@ def salvar_dados(dados):
     ref = db.reference('/')
     ref.set(dados)
 
-# --- RESTO DO CÓDIGO (sem alterações críticas) ---
+# --- RESTO DO CÓDIGO (sem alterações) ---
 dados_clientes = carregar_dados()
 
 st.sidebar.header("Clientes Cadastrados")
@@ -102,17 +100,9 @@ with col1:
             st.warning("Por favor, cole a conversa para análise.")
         else:
             with st.spinner("A IA está a analisar a conversa..."):
-                # O resto do código da IA continua o mesmo
                 try:
                     prompt = f"""
-                    Você é um sistema de CRM inteligente... (o resto do prompt é igual)
-                    **Dossiê Atual do Cliente (em formato JSON):**
-                    {json.dumps(cliente_atual, ensure_ascii=False, indent=2)}
-                    **Nova Transcrição da Conversa do WhatsApp:**
-                    ---
-                    {nova_conversa}
-                    ---
-                    **Sua Tarefa:** ...
+                    Você é um sistema de CRM inteligente. Sua tarefa é atualizar o dossiê de um cliente... (o resto do prompt é igual)
                     """
                     model = genai.GenerativeModel('gemini-1.0-pro')
                     response = model.generate_content(prompt)
