@@ -15,17 +15,22 @@ st.write("A memória viva do seu suporte ao cliente via WhatsApp.")
 def init_firebase():
     """Inicializa a conexão com o Firebase, corrigindo a formatação da chave privada."""
     try:
-        firebase_creds_dict = st.secrets["firebase"]
+        # Pega o objeto de segredos (apenas leitura)
+        secrets_firebase = st.secrets["firebase"]
         db_url = st.secrets["databaseURL"]
-        
+
         # ***** A CORREÇÃO ESTÁ AQUI *****
-        # O Streamlit lê as quebras de linha como texto '\\n'.
-        # Esta linha substitui o texto por uma quebra de linha real '\n'.
+        # 1. Copia os segredos para um dicionário normal (editável)
+        firebase_creds_dict = dict(secrets_firebase)
+
+        # 2. Corrige a formatação da chave privada neste novo dicionário
         firebase_creds_dict["private_key"] = firebase_creds_dict["private_key"].replace('\\n', '\n')
         # *********************************
-        
+
+        # 3. Usa o dicionário corrigido para criar as credenciais
         cred = credentials.Certificate(firebase_creds_dict)
 
+        # Evita reinicializar o app se ele já estiver rodando
         try:
             firebase_admin.get_app()
         except ValueError:
@@ -103,7 +108,6 @@ with col1:
         else:
             with st.spinner("A IA está a analisar a conversa..."):
                 try:
-                    # Incluindo o dossiê atual no prompt
                     prompt_completo = f"""
                     Você é um sistema de CRM inteligente. Sua tarefa é atualizar o dossiê de um cliente.
 
